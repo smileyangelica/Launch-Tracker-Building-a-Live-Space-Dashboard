@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESA Member States - National Space Agencies</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a1e3f 0%, #1a3a52 50%, #0f2744 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .page-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 30px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #64b5f6 0%, #81c784 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.85;
+            margin-top: 10px;
+        }
+        
+        .search-box {
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #64b5f6;
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        @media (max-width: 1200px) {
+            .content {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+        }
+        
+        .table-section {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .section-header {
+            background: linear-gradient(135deg, #64b5f6 0%, #81c784 100%);
+            color: white;
+            padding: 20px;
+            font-size: 1.4em;
+            font-weight: 600;
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95em;
+        }
+        
+        th {
+            background: #f5f5f5;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        th:hover {
+            background: #efefef;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #555;
+        }
+        
+        tr:hover {
+            background: #f9f9f9;
+        }
+        
+        tr:nth-child(even) {
+            background: #fafafa;
+        }
+        
+        .agency-name {
+            font-weight: 600;
+            color: #0a1e3f;
+        }
+        
+        .country {
+            color: #64b5f6;
+            font-weight: 500;
+        }
+        
+        .coords {
+            font-size: 0.85em;
+            color: #999;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .map-section {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #map {
+            height: 650px;
+            width: 100%;
+            flex: 1;
+        }
+        
+        .map-legend {
+            padding: 15px;
+            background: #f5f5f5;
+            border-top: 1px solid #e0e0e0;
+            font-size: 0.85em;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid #ddd;
+        }
+        
+        .footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            padding: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .footer a {
+            color: #64b5f6;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .footer a:hover {
+            color: #81c784;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(100, 181, 246, 0.1);
+            border-radius: 8px;
+            color: white;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #64b5f6;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <div class="header">
+            <h1>🚀 ESA Member States</h1>
+            <p>National Space Agency Headquarters</p>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number">22</div>
+                    <div class="stat-label">Member States</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">22</div>
+                    <div class="stat-label">Space Agencies</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">4</div>
+                    <div class="stat-label">Continents</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="search-box">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search by agency name, country, or city...">
+        </div>
+        
+        <div class="content">
+            <div class="table-section">
+                <div class="section-header">Agency Directory</div>
+                <div class="table-wrapper">
+                    <table id="agencyTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable('name')">Agency Name ↕</th>
+                                <th onclick="sortTable('country')">Country ↕</th>
+                                <th onclick="sortTable('city')">City ↕</th>
+                                <th onclick="sortTable('address')">Address</th>
+                                <th onclick="sortTable('coords')">Coordinates ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="map-section">
+                <div class="section-header">Interactive Headquarters Map</div>
+                <div id="map"></div>
+                <div class="map-legend">
+                    <div style="font-weight: 600; margin-bottom: 10px;">Legend</div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #64b5f6;"></div>
+                        <span>Space Agency Headquarters</span>
+                    </div>
+                    <div class="legend-item">
+                        <span style="font-size: 0.9em; color: #666;">Click markers for agency details</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>🌍 Mapping all 22 ESA Member States' National Space Agencies</p>
+            <p style="margin-top: 10px; font-size: 0.85em; opacity: 0.6;">
+                Data accurate as of 2024 | Map powered by OpenStreetMap & Leaflet
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // All 22 ESA Member States with their national space agencies
+        const agencies = [
+            {
+                id: 1,
+                name: "Austrian Space Agency (ASA)",
+                country: "Austria",
+                city: "Vienna",
+                address: "Optergasse 2, 1020 Vienna, Austria",
+                lat: 48.2081,
+                lng: 16.3738,
+                shortInfo: "Federal research institution under BMVIT"
+            },
+            {
+                id: 2,
+                name: "Belgian Federal Science Policy Office (BELSPO)",
+                country: "Belgium",
+                city: "Brussels",
+                address: "21 rue de la Science, 1040 Brussels, Belgium",
+                lat: 50.8453,
+                lng: 4.3822,
+                shortInfo: "Space policy and research coordination"
+            },
+            {
+                id: 3,
+                name: "Czech Space Office (CSO)",
+                country: "Czech Republic",
+                city: "Prague",
+                address: "Dělnická 212/12, 170 00 Prague 7, Czech Republic",
+                lat: 50.1109,
+                lng: 14.4400,
+                shortInfo: "National space activities coordinator"
+            },
+            {
+                id: 4,
+                name: "Danish National Space Institute (DTTI)",
+                country: "Denmark",
+                city: "Copenhagen",
+                address: "Elektrovej 327, 2800 Kongens Lyngby, Denmark",
+                lat: 55.7842,
+                lng: 12.5265,
+                shortInfo: "Research and space activities"
+            },
+            {
+                id: 5,
+                name: "Estonian Space Agency",
+                country: "Estonia",
+                city: "Tallinn",
+                address: "Akadeemia tee 23, 12618 Tallinn, Estonia",
+                lat: 59.3950,
+                lng: 24.6522,
+                shortInfo: "National space development"
+            },
+            {
+                id: 6,
+                name: "Finnish Space Agency (Suomen avaruushallinto)",
+                country: "Finland",
+                city: "Helsinki",
+                address: "PO Box 32, 02151 Espoo, Finland",
+                lat: 60.1695,
+                lng: 24.9354,
+                shortInfo: "Space research and development"
+            },
+            {
+                id: 7,
+                name: "Centre National d'Études Spatiales (CNES)",
+                country: "France",
+                city: "Toulouse",
+                address: "18 Avenue Édouard Belin, 31401 Toulouse, France",
+                lat: 43.5628,
+                lng: 1.4547,
+                shortInfo: "Leading European space agency"
+            },
+            {
+                id: 8,
+                name: "German Aerospace Center (DLR)",
+                country: "Germany",
+                city: "Cologne",
+                address: "Linder Höhe, 51147 Cologne, Germany",
+                lat: 50.8933,
+                lng: 6.8648,
+                shortInfo: "Major aerospace research organization"
+            },
+            {
+                id: 9,
+                name: "Hellenic Space Agency (HSA)",
+                country: "Greece",
+                city: "Athens",
+                address: "Kanellopoulou 166, Piraeus 18536, Greece",
+                lat: 37.9368,
+                lng: 23.6331,
+                shortInfo: "Greek space and technology initiatives"
+            },
+            {
+                id: 10,
+                name: "Hungarian Space Office (HSO)",
+                country: "Hungary",
+                city: "Budapest",
+                address: "H-1023 Budapest, Szilágyi Erzsébet fasor 37/b, Hungary",
+                lat: 47.5316,
+                lng: 18.9922,
+                shortInfo: "Space research coordination"
+            },
+            {
+                id: 11,
+                name: "Irish Space Agency",
+                country: "Ireland",
+                city: "Dublin",
+                address: "Government Buildings, Merrion Street, Dublin 2, Ireland",
+                lat: 53.3425,
+                lng: -6.2674,
+                shortInfo: "National space activities"
+            },
+            {
+                id: 12,
+                name: "Italian Space Agency (ASI)",
+                country: "Italy",
+                city: "Rome",
+                address: "Via del Politecnico snc, 00133 Rome, Italy",
+                lat: 41.8597,
+                lng: 12.6117,
+                shortInfo: "Leading Italian space organization"
+            },
+            {
+                id: 13,
+                name: "Luxembourg Space Agency (LSA)",
+                country: "Luxembourg",
+                city: "Luxembourg City",
+                address: "10 Rue de Trèves, 2632 Luxembourg City, Luxembourg",
+                lat: 49.6116,
+                lng: 6.1319,
+                shortInfo: "Space policy and research"
+            },
+            {
+                id: 14,
+                name: "Netherlands Organization for Applied Scientific Research (TNO)",
+                country: "Netherlands",
+                city: "Rijswijk",
+                address: "Lange Kleiweg 137, 2288 GJ Rijswijk, Netherlands",
+                lat: 52.0438,
+                lng: 4.2542,
+                shortInfo: "Applied space research"
+            },
+            {
+                id: 15,
+                name: "Norwegian Space Agency (NSC)",
+                country: "Norway",
+                city: "Longyearbyen",
+                address: "P.O. Box 113, 9171 Longyearbyen, Svalbard, Norway",
+                lat: 78.2232,
+                lng: 15.6267,
+                shortInfo: "Arctic space research"
+            },
+            {
+                id: 16,
+                name: "Polish Space Agency (POLSA)",
+                country: "Poland",
+                city: "Warsaw",
+                address: "Ul. Zwirki i Wigury 9, 02-092 Warsaw, Poland",
+                lat: 52.0934,
+                lng: 21.0394,
+                shortInfo: "National space program"
+            },
+            {
+                id: 17,
+                name: "Portuguese Space Agency (Portugal Espaço)",
+                country: "Portugal",
+                city: "Lisbon",
+                address: "Av. D. Carlos I, 126, 1200-646 Lisbon, Portugal",
+                lat: 38.7223,
+                lng: -9.1393,
+                shortInfo: "Portuguese space activities"
+            },
+            {
+                id: 18,
+                name: "Romanian Space Agency (ROSA)",
+                country: "Romania",
+                city: "Bucharest",
+                address: "Str. Mendeleev nr 21-25, Sector 1, 010362 Bucharest, Romania",
+                lat: 44.4479,
+                lng: 26.0979,
+                shortInfo: "Romanian space development"
+            },
+            {
+                id: 19,
+                name: "Spanish National Research Council (CSIC)",
+                country: "Spain",
+                city: "Madrid",
+                address: "Serrano, 117, 28006 Madrid, Spain",
+                lat: 40.4485,
+                lng: -3.6891,
+                shortInfo: "Spanish space research"
+            },
+            {
+                id: 20,
+                name: "Swedish National Space Agency (SNSA)",
+                country: "Sweden",
+                city: "Solna",
+                address: "Box 4006, 171 04 Solna, Sweden",
+                lat: 59.3326,
+                lng: 18.0352,
+                shortInfo: "Swedish space program"
+            },
+            {
+                id: 21,
+                name: "Swiss State Secretariat for Education, Research and Innovation (SERI)",
+                country: "Switzerland",
+                city: "Bern",
+                address: "Hallwylstrasse 4, 3003 Bern, Switzerland",
+                lat: 46.9479,
+                lng: 7.4474,
+                shortInfo: "Swiss space policy"
+            },
+            {
+                id: 22,
+                name: "United Kingdom Space Agency (UKSA)",
+                country: "United Kingdom",
+                city: "Swindon",
+                address: "Building R405, Polaris House, North Star Avenue, Swindon SN2 1SZ, UK",
+                lat: 51.5533,
+                lng: -1.7797,
+                shortInfo: "UK space exploration and innovation"
+            }
+        ];
+
+        let currentSort = { field: 'name', ascending: true };
+        let filteredAgencies = [...agencies];
+
+        // Initialize map
+        const map = L.map('map').setView([54, 10], 3);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19,
+            maxNativeZoom: 18
+        }).addTo(map);
+
+        // Add markers to map
+        agencies.forEach(agency => {
+            const marker = L.circleMarker([agency.lat, agency.lng], {
+                radius: 8,
+                fillColor: '#64b5f6',
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(map);
+
+            const popup = `
+                <div style="font-size: 0.9em;">
+                    <strong style="color: #0a1e3f;">${agency.name}</strong><br>
+                    <span style="color: #666;">${agency.city}, ${agency.country}</span><br>
+                    <span style="font-size: 0.8em; color: #999;">${agency.address}</span><br>
+                    <span style="font-family: monospace; font-size: 0.75em; color: #64b5f6;">
+                        ${agency.lat.toFixed(4)}°, ${agency.lng.toFixed(4)}°
+                    </span>
+                </div>
+            `;
+            marker.bindPopup(popup);
+        });
+
+        // Populate table
+        function renderTable() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            
+            filteredAgencies.forEach(agency => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="agency-name">${agency.name}</td>
+                    <td class="country">${agency.country}</td>
+                    <td>${agency.city}</td>
+                    <td>${agency.address}</td>
+                    <td class="coords">${agency.lat.toFixed(4)}°, ${agency.lng.toFixed(4)}°</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('keyup', (e) => {
+            const query = e.target.value.toLowerCase();
+            filteredAgencies = agencies.filter(agency => 
+                agency.name.toLowerCase().includes(query) ||
+                agency.country.toLowerCase().includes(query) ||
+                agency.city.toLowerCase().includes(query) ||
+                agency.address.toLowerCase().includes(query)
+            );
+            renderTable();
+        });
+
+        // Sort functionality
+        function sortTable(field) {
+            if (currentSort.field === field) {
+                currentSort.ascending = !currentSort.ascending;
+            } else {
+                currentSort.field = field;
+                currentSort.ascending = true;
+            }
+
+            const fieldMap = {
+                'name': 'name',
+                'country': 'country',
+                'city': 'city',
+                'address': 'address',
+                'coords': 'lat'
+            };
+
+            const sortField = fieldMap[field];
+            filteredAgencies.sort((a, b) => {
+                let aVal = a[sortField];
+                let bVal = b[sortField];
+
+                if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+
+                if (currentSort.ascending) {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+
+            renderTable();
+        }
+
+        // Initial render
+        renderTable();
+    </script>
+</body>
+</html>
