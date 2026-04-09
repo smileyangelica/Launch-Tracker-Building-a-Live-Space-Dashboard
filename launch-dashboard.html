@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Launch Tracker - Live Rocket Launch Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-dark: #0a0e27;
+            --secondary-dark: #1a1f3a;
+            --accent-cyan: #00d9ff;
+            --accent-purple: #9d00ff;
+            --accent-pink: #ff006e;
+            --text-primary: #f5f5f5;
+            --text-secondary: #b0b0b0;
+            --success: #00ff88;
+            --warning: #ffb400;
+            --danger: #ff4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, #1a0033 100%);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Animated background stars */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 60px 70px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 50px 50px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 130px 80px, #fff, rgba(0,0,0,0));
+            background-repeat: repeat;
+            background-size: 200px 200px;
+            pointer-events: none;
+            opacity: 0.5;
+            z-index: 0;
+        }
+
+        header {
+            background: rgba(10, 14, 39, 0.95);
+            padding: 2rem 1rem;
+            border-bottom: 2px solid var(--accent-cyan);
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.1);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--success);
+        }
+
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .current-time {
+            font-size: 1rem;
+            color: var(--accent-cyan);
+            font-weight: 500;
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .countdown-hero {
+            background: linear-gradient(135deg, var(--secondary-dark) 0%, rgba(157, 0, 255, 0.1) 100%);
+            border: 2px solid var(--accent-cyan);
+            border-radius: 20px;
+            padding: 3rem 2rem;
+            margin-bottom: 3rem;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(0, 217, 255, 0.2), inset 0 0 40px rgba(157, 0, 255, 0.1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .countdown-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0, 217, 255, 0.05) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .countdown-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .countdown-label {
+            font-size: 1.2rem;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .next-mission h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .mission-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .meta-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 3px solid var(--accent-purple);
+        }
+
+        .meta-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .meta-value {
+            color: var(--accent-cyan);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .countdown-timer {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin: 2.5rem 0;
+        }
+
+        .timer-unit {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--accent-purple);
+            border-radius: 15px;
+            padding: 2rem 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .timer-value {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .timer-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0.5rem;
+        }
+
+        .launch-container {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 5px;
+            height: 30px;
+            background: linear-gradient(180deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 5px;
+        }
+
+        .launches-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .launch-card {
+            background: linear-gradient(135deg, var(--secondary-dark) 0%, rgba(157, 0, 255, 0.05) 100%);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 15px;
+            padding: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .launch-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 217, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .launch-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 20px 40px rgba(0, 217, 255, 0.2);
+        }
+
+        .launch-card:hover::before {
+            left: 100%;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .launch-status {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            background: var(--success);
+            color: #000;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .launch-status.delayed {
+            background: var(--warning);
+        }
+
+        .launch-status.cancelled {
+            background: var(--danger);
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .card-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            font-size: 0.95rem;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(0, 217, 255, 0.1);
+        }
+
+        .detail-label {
+            color: var(--text-secondary);
+        }
+
+        .detail-value {
+            color: var(--accent-cyan);
+            font-weight: 500;
+        }
+
+        .countdown-small {
+            color: var(--accent-pink);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 217, 255, 0.3);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 3rem 0;
+        }
+
+        .stat-box {
+            background: rgba(0, 217, 255, 0.05);
+            border: 1px solid var(--accent-cyan);
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        footer {
+            background: rgba(10, 14, 39, 0.95);
+            border-top: 2px solid var(--accent-purple);
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .countdown-hero {
+                padding: 2rem 1rem;
+            }
+
+            .countdown-timer {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .timer-value {
+                font-size: 2.2rem;
+            }
+
+            .timer-unit {
+                padding: 1.5rem 0.5rem;
+            }
+
+            .launches-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .mission-meta {
+                grid-template-columns: 1fr;
+            }
+
+            .countdown-label {
+                font-size: 1rem;
+            }
+
+            .next-mission h2 {
+                font-size: 1.5rem;
+            }
+
+            .section-title {
+                font-size: 1.3rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5rem;
+                letter-spacing: 1px;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .countdown-hero {
+                padding: 1.5rem 1rem;
+            }
+
+            .countdown-timer {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.8rem;
+            }
+
+            .timer-value {
+                font-size: 1.8rem;
+            }
+
+            .timer-unit {
+                padding: 1rem;
+            }
+
+            .timer-label {
+                font-size: 0.7rem;
+            }
+
+            .card-title {
+                font-size: 1.1rem;
+            }
+
+            .stat-number {
+                font-size: 2rem;
+            }
+        }
+
+        /* Error state */
+        .error-message {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: #ff9999;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 2rem 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>🚀 LAUNCH TRACKER</h1>
+            <div style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: center;">
+                <div class="current-time" id="currentTime">--:--:--</div>
+                <div class="live-indicator">
+                    <div class="live-dot"></div>
+                    <span>LIVE</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Next Launch Hero Section -->
+        <section class="countdown-hero" id="heroSection">
+            <div class="countdown-content">
+                <div class="countdown-label">Next Launch</div>
+                <div class="next-mission">
+                    <h2 id="nextMissionName">Loading...</h2>
+                    <div class="mission-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Rocket</div>
+                            <div class="meta-value" id="nextRocket">--</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Launch Site</div>
+                            <div class="meta-value" id="nextSite">--</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Provider</div>
+                            <div class="meta-value" id="nextProvider">--</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="countdown-timer">
+                    <div class="timer-unit">
+                        <div class="timer-value" id="days">00</div>
+                        <div class="timer-label">Days</div>
+                    </div>
+                    <div class="timer-unit">
+                        <div class="timer-value" id="hours">00</div>
+                        <div class="timer-label">Hours</div>
+                    </div>
+                    <div class="timer-unit">
+                        <div class="timer-value" id="minutes">00</div>
+                        <div class="timer-label">Minutes</div>
+                    </div>
+                    <div class="timer-unit">
+                        <div class="timer-value" id="seconds">00</div>
+                        <div class="timer-label">Seconds</div>
+                    </div>
+                </div>
+                <div class="meta-item" style="margin-top: 2rem;">
+                    <div class="meta-label">Scheduled Launch</div>
+                    <div class="meta-value" id="nextLaunchTime">--</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Statistics -->
+        <div class="stats-container">
+            <div class="stat-box">
+                <div class="stat-number" id="totalLaunches">0</div>
+                <div class="stat-label">Upcoming Launches</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="thisMonth">0</div>
+                <div class="stat-label">This Month</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="uniqueProviders">0</div>
+                <div class="stat-label">Launch Providers</div>
+            </div>
+        </div>
+
+        <!-- Upcoming Launches -->
+        <section class="launch-container">
+            <h2 class="section-title">Upcoming Launches</h2>
+            <div class="launches-grid" id="launchesGrid">
+                <div class="loading">Loading launch data...</div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Launch Tracker © 2026 | Data sourced from SpaceX API and Launch Library</p>
+        <p style="font-size: 0.9rem; margin-top: 1rem;">Last updated: <span id="lastUpdate">--</span></p>
+    </footer>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            SPACEX_API: 'https://api.spacexdata.com/v4',
+            UPDATE_INTERVAL: 60000, // 60 seconds
+            COUNTDOWN_INTERVAL: 1000, // 1 second
+        };
+
+        // State
+        let launches = [];
+        let nextLaunch = null;
+
+        // Initialize app
+        async function init() {
+            updateCurrentTime();
+            await fetchLaunches();
+            startCountdown();
+            startTimeUpdates();
+            
+            // Refresh data periodically
+            setInterval(fetchLaunches, CONFIG.UPDATE_INTERVAL);
+        }
+
+        // Fetch launches from SpaceX API
+        async function fetchLaunches() {
+            try {
+                const response = await fetch(`${CONFIG.SPACEX_API}/launches/upcoming?limit=50&sort=date_utc&order=asc`);
+                if (!response.ok) throw new Error('Failed to fetch launches');
+                
+                launches = await response.json();
+                
+                // Get rocket and launchpad details for better display
+                const enrichedLaunches = await Promise.all(
+                    launches.map(async (launch) => {
+                        try {
+                            const rocketRes = await fetch(`${CONFIG.SPACEX_API}/rockets/${launch.rocket}`);
+                            const launchpadRes = await fetch(`${CONFIG.SPACEX_API}/launchpads/${launch.launchpad}`);
+                            
+                            const rocket = await rocketRes.json();
+                            const launchpad = await launchpadRes.json();
+                            
+                            return {
+                                ...launch,
+                                rocketName: rocket.name,
+                                rocketType: rocket.type,
+                                launchpadName: launchpad.full_name,
+                                launchpadRegion: launchpad.region,
+                            };
+                        } catch (e) {
+                            return launch;
+                        }
+                    })
+                );
+                
+                launches = enrichedLaunches;
+                nextLaunch = launches[0];
+                
+                renderHeroSection();
+                renderLaunches();
+                updateStatistics();
+                updateLastUpdateTime();
+            } catch (error) {
+                console.error('Error fetching launches:', error);
+                renderError('Unable to fetch launch data. Retrying...');
+            }
+        }
+
+        // Render hero section with next launch
+        function renderHeroSection() {
+            if (!nextLaunch) return;
+
+            const launchDate = new Date(nextLaunch.date_utc);
+            const rocketName = nextLaunch.rocketName || 'Unknown Rocket';
+            const siteName = nextLaunch.launchpadName || 'Unknown Site';
+            const missionName = nextLaunch.name || 'Unknown Mission';
+            const provider = getProvider(nextLaunch);
+
+            document.getElementById('nextMissionName').textContent = missionName;
+            document.getElementById('nextRocket').textContent = rocketName;
+            document.getElementById('nextSite').textContent = siteName;
+            document.getElementById('nextProvider').textContent = provider;
+            document.getElementById('nextLaunchTime').textContent = formatDateTime(launchDate);
+        }
+
+        // Render launches grid
+        function renderLaunches() {
+            const grid = document.getElementById('launchesGrid');
+            
+            if (launches.length === 0) {
+                grid.innerHTML = '<div class="empty-state">No launches scheduled</div>';
+                return;
+            }
+
+            grid.innerHTML = launches.map((launch, index) => {
+                const launchDate = new Date(launch.date_utc);
+                const now = new Date();
+                const isNext = index === 0;
+                const countdownText = getCountdownText(launchDate);
+                const rocketName = launch.rocketName || 'Unknown Rocket';
+                const siteName = launch.launchpadName || 'Unknown Site';
+                const status = getStatus(launch);
+
+                return `
+                    <div class="launch-card" style="${isNext ? 'border-color: var(--accent-cyan); box-shadow: 0 0 30px rgba(0, 217, 255, 0.3);' : ''}">
+                        <div class="card-header">
+                            <h3 class="card-title">${escape(launch.name)}</h3>
+                            <span class="launch-status${status !== 'GO' ? ' delayed' : ''}">${status}</span>
+                        </div>
+                        <div class="card-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Rocket:</span>
+                                <span class="detail-value">${escape(rocketName)}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Launch Site:</span>
+                                <span class="detail-value">${escape(siteName)}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Provider:</span>
+                                <span class="detail-value">${getProvider(launch)}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Launch Time:</span>
+                                <span class="detail-value">${formatDateTime(launchDate)}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Countdown:</span>
+                                <span class="countdown-small">${countdownText}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update countdown timer
+        function startCountdown() {
+            function updateCountdown() {
+                if (!nextLaunch) return;
+
+                const launchDate = new Date(nextLaunch.date_utc);
+                const now = new Date();
+                const diff = launchDate - now;
+
+                if (diff <= 0) {
+                    document.getElementById('days').textContent = '00';
+                    document.getElementById('hours').textContent = '00';
+                    document.getElementById('minutes').textContent = '00';
+                    document.getElementById('seconds').textContent = '00';
+                    
+                    // Fetch new launches after countdown ends
+                    setTimeout(() => {
+                        fetchLaunches();
+                    }, 2000);
+                    return;
+                }
+
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                document.getElementById('days').textContent = String(days).padStart(2, '0');
+                document.getElementById('hours').textContent = String(hours).padStart(2, '0');
+                document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
+                document.getElementById('seconds').textContent = String(seconds).padStart(2, '0');
+            }
+
+            updateCountdown();
+            setInterval(updateCountdown, CONFIG.COUNTDOWN_INTERVAL);
+        }
+
+        // Update current time and date
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { 
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('currentTime').textContent = timeStr;
+        }
+
+        function startTimeUpdates() {
+            setInterval(updateCurrentTime, 1000);
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const now = new Date();
+            const thisMonth = launches.filter(l => {
+                const d = new Date(l.date_utc);
+                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            }).length;
+
+            const providers = new Set(launches.map(l => getProvider(l)));
+
+            document.getElementById('totalLaunches').textContent = launches.length;
+            document.getElementById('thisMonth').textContent = thisMonth;
+            document.getElementById('uniqueProviders').textContent = providers.size;
+        }
+
+        // Helper functions
+        function getProvider(launch) {
+            // SpaceX missions
+            if (launch.rocket === '5e9d0d95eda69973a809a1ec') return 'SpaceX';
+            // Add more providers as needed
+            return 'Other';
+        }
+
+        function getStatus(launch) {
+            if (launch.upcoming === false && launch.success === true) return 'SUCCESS';
+            if (launch.upcoming === false && launch.success === false) return 'FAILED';
+            return 'GO';
+        }
+
+        function formatDateTime(date) {
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: 'UTC'
+            }) + ' UTC';
+        }
+
+        function getCountdownText(date) {
+            const now = new Date();
+            const diff = date - now;
+
+            if (diff <= 0) return 'Launching now!';
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+            if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+            if (hours > 0) return `${hours}h ${minutes}m`;
+            return `${minutes}m`;
+        }
+
+        function updateLastUpdateTime() {
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function renderError(message) {
+            const container = document.getElementById('launchesGrid');
+            if (container.querySelector('.loading')) {
+                container.innerHTML = `<div class="error-message">${message}</div>`;
+            }
+        }
+
+        function escape(str) {
+            if (!str) return '';
+            return str.replace(/[&<>"']/g, (char) => {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                };
+                return map[char];
+            });
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
